@@ -18,12 +18,14 @@ class TaskFeatureTest extends TestCase
     {
         $user = User::factory()->create();
         $project = Project::factory()->create();
+        $column = $project->columns()->create(['name' => 'To Do']); // Create implicit column
 
         $response = $this->actingAs($user)->post('/tasks', [
             'project_id' => $project->id,
+            'column_id' => $column->id,
             'title' => 'New Task',
             'description' => 'Describe task',
-            'status' => 'pending',
+            'priority' => 'medium',
             'deadline' => now()->addDay()->toDateTimeString(),
         ]);
 
@@ -35,16 +37,24 @@ class TaskFeatureTest extends TestCase
     public function user_can_update_task_status()
     {
         $user = User::factory()->create();
-        $task = Task::factory()->create(['status' => 'pending']);
+        // Create task with factory which handles column creation if needed, or manually
+        $project = Project::factory()->create();
+        $col1 = $project->columns()->create(['name' => 'To Do']);
+        $col2 = $project->columns()->create(['name' => 'Done']);
+        
+        $task = Task::factory()->create([
+            'project_id' => $project->id,
+            'column_id' => $col1->id
+        ]);
 
         $response = $this->actingAs($user)->patch("/tasks/{$task->id}", [
-            'status' => 'completed',
+            'column_id' => $col2->id,
         ]);
 
         $response->assertRedirect();
         $this->assertDatabaseHas('tasks', [
             'id' => $task->id,
-            'status' => 'completed',
+            'column_id' => $col2->id,
         ]);
     }
 
@@ -67,6 +77,6 @@ class TaskFeatureTest extends TestCase
 
         $this->actingAs($user)->post('/tasks', [
             'title' => '',
-        ])->assertSessionHasErrors(['project_id', 'title', 'status', 'deadline']);
+        ])->assertSessionHasErrors(['project_id', 'title', 'column_id', 'deadline', 'priority']);
     }
 }

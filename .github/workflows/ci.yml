@@ -38,6 +38,12 @@ jobs:
         touch database/database.sqlite
         php artisan migrate --force
 
+    - name: Install Frontend Dependencies
+      run: npm install
+
+    - name: Build Frontend Assets
+      run: npm run build
+
     - name: Execute Tests (Unit and Feature)
       run: php artisan test
 
