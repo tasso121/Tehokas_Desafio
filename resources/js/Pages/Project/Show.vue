@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({ project: Object });
 
@@ -10,6 +10,7 @@ const form = useForm({
     title: '',
     description: '',
     status: 'pending',
+    priority: 'medium',
     deadline: '',
 });
 
@@ -17,7 +18,6 @@ const submitTask = () => {
     form.post(route('tasks.store'), {
         onSuccess: () => {
             form.reset('title', 'description', 'deadline');
-            // Refresh logic handled by Inertia automatically
         },
     });
 };
@@ -38,11 +38,21 @@ const deleteTask = (task) => {
     }
 };
 
+const filterPriority = ref('all');
+
 const tasksByStatus = computed(() => {
+    const filter = (status) => {
+        return props.project.tasks.filter(t => {
+            const statusMatch = t.status === status;
+            const priorityMatch = filterPriority.value === 'all' || t.priority === filterPriority.value;
+            return statusMatch && priorityMatch;
+        });
+    };
+
     return {
-        pending: props.project.tasks.filter(t => t.status === 'pending'),
-        in_progress: props.project.tasks.filter(t => t.status === 'in_progress'),
-        completed: props.project.tasks.filter(t => t.status === 'completed'),
+        pending: filter('pending'),
+        in_progress: filter('in_progress'),
+        completed: filter('completed'),
     };
 });
 
@@ -61,6 +71,24 @@ const statusLabels = {
     in_progress: 'Em Andamento',
     completed: 'Concluída'
 };
+
+const getPriorityBadgeClass = (priority) => {
+    switch (priority) {
+        case 'high': return 'bg-red-100 text-red-800 border-red-200';
+        case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        case 'low': return 'bg-gray-100 text-gray-800 border-gray-200';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+};
+
+const getPriorityLabel = (priority) => {
+    switch (priority) {
+        case 'high': return 'Alta';
+        case 'medium': return 'Média';
+        case 'low': return 'Baixa';
+        default: return priority;
+    }
+};
 </script>
 
 <template>
@@ -77,7 +105,17 @@ const statusLabels = {
                     </h2>
                     <p class="text-sm text-gray-500 mt-1">{{ project.description }}</p>
                 </div>
-                <div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center">
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Filtrar Prioridade:</label>
+                        <select v-model="filterPriority" class="text-sm rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white py-1">
+                            <option value="all">Todas</option>
+                            <option value="high">Alta</option>
+                            <option value="medium">Média</option>
+                            <option value="low">Baixa</option>
+                        </select>
+                    </div>
+
                     <span v-if="project.is_on_alert" class="px-3 py-1 text-sm font-bold text-red-100 bg-red-600 rounded-full animate-pulse">
                         ⚠️ Projeto Em Alerta
                     </span>
@@ -94,7 +132,7 @@ const statusLabels = {
                 <!-- Add Task Form -->
                 <div class="bg-white dark:bg-gray-800 shadow sm:rounded-lg mb-8 p-4">
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Adicionar Nova Tarefa</h3>
-                    <form @submit.prevent="submitTask" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <form @submit.prevent="submitTask" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                         <div class="md:col-span-1">
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Título</label>
                             <input v-model="form.title" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" required>
@@ -111,12 +149,20 @@ const statusLabels = {
                                 <option value="completed">Concluída</option>
                             </select>
                         </div>
-                         <div class="md:col-span-1">
+                        <div class="md:col-span-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Prioridade</label>
+                            <select v-model="form.priority" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white" required>
+                                <option value="low">Baixa</option>
+                                <option value="medium">Média</option>
+                                <option value="high">Alta</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-1">
                             <button type="submit" :disabled="form.processing" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none disabled:opacity-50">
-                                Adicionar Tarefa
+                                Adicionar
                             </button>
                         </div>
-                        <div class="md:col-span-4 mt-2">
+                        <div class="md:col-span-5 mt-2">
                              <input v-model="form.description" type="text" placeholder="Detalhes da tarefa (opcional)..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white">
                         </div>
                     </form>
@@ -140,6 +186,9 @@ const statusLabels = {
                              </div>
                              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ task.description }}</p>
                              <div class="mt-3 flex justify-between items-center text-xs">
+                                <span class="px-2 py-0.5 rounded border text-[10px] uppercase font-bold" :class="getPriorityBadgeClass(task.priority)">
+                                    {{ getPriorityLabel(task.priority) }}
+                                </span>
                                 <span :class="{'text-red-500 font-bold': isOverdue(task), 'text-gray-500': !isOverdue(task)}">
                                     📅 {{ formatDate(task.deadline) }}
                                 </span>
@@ -169,6 +218,9 @@ const statusLabels = {
                              </div>
                              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ task.description }}</p>
                              <div class="mt-3 flex justify-between items-center text-xs">
+                                <span class="px-2 py-0.5 rounded border text-[10px] uppercase font-bold" :class="getPriorityBadgeClass(task.priority)">
+                                    {{ getPriorityLabel(task.priority) }}
+                                </span>
                                 <span :class="{'text-red-500 font-bold': isOverdue(task), 'text-gray-500': !isOverdue(task)}">
                                     📅 {{ formatDate(task.deadline) }}
                                 </span>

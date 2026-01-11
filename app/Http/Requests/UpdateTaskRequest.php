@@ -18,6 +18,7 @@ class UpdateTaskRequest extends FormRequest
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'status' => 'sometimes|in:pending,in_progress,completed',
+            'priority' => 'sometimes|in:low,medium,high',
             'deadline' => 'sometimes|date',
         ];
     }
