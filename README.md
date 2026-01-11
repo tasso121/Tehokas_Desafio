@@ -69,5 +69,3 @@ A escolha do Inertia.js permitiu construir uma Single Page Application (SPA) rob
 ### Maior Dificuldade
 A maior dificuldade técnica encontrada foi garantir a compatibilidade entre as versões mais recentes do Vite (v7) e os plugins do ecossistema Vue, o que foi resolvido ajustando as dependências do `package.json` para garantir estabilidade.
 
----
-Desenvolvido por Candidato.
