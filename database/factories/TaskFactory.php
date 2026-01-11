@@ -22,6 +22,7 @@ class TaskFactory extends Factory
             'title' => fake()->sentence(4),
             'description' => fake()->paragraph(),
             'status' => fake()->randomElement(['pending', 'in_progress', 'completed']),
+            'priority' => fake()->randomElement(['low', 'medium', 'high']),
             'deadline' => fake()->dateTimeBetween('-1 month', '+1 month'),
         ];
     }
