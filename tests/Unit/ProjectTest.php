@@ -25,7 +25,7 @@ class ProjectTest extends TestCase
     {
         $project = Project::factory()->create();
         $col = $project->columns()->create(['name' => 'Pend', 'is_completed' => false]);
-        
+
         Task::factory(5)->create([
             'project_id' => $project->id,
             'column_id' => $col->id,
@@ -41,7 +41,7 @@ class ProjectTest extends TestCase
     {
         $project = Project::factory()->create();
         $colPending = $project->columns()->create(['name' => 'Pend', 'is_completed' => false]);
-        
+
         Task::factory()->create([
             'project_id' => $project->id,
             'column_id' => $colPending->id,

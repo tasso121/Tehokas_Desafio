@@ -41,10 +41,10 @@ class TaskFeatureTest extends TestCase
         $project = Project::factory()->create();
         $col1 = $project->columns()->create(['name' => 'To Do']);
         $col2 = $project->columns()->create(['name' => 'Done']);
-        
+
         $task = Task::factory()->create([
             'project_id' => $project->id,
-            'column_id' => $col1->id
+            'column_id' => $col1->id,
         ]);
 
         $response = $this->actingAs($user)->patch("/tasks/{$task->id}", [

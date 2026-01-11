@@ -9,10 +9,6 @@ class ColumnService
 {
     /**
      * Create a new column for a project.
-     *
-     * @param Project $project
-     * @param array $data
-     * @return Column
      */
     public function createColumn(Project $project, array $data): Column
     {
