@@ -37,7 +37,7 @@ class ProjectTest extends TestCase
     public function it_is_not_on_alert_if_exactly_20_percent_of_tasks_are_overdue()
     {
         $project = Project::factory()->create();
-        
+
         Task::factory()->create([
             'project_id' => $project->id,
             'status' => 'pending',
@@ -57,7 +57,7 @@ class ProjectTest extends TestCase
     public function it_is_on_alert_if_more_than_20_percent_of_tasks_are_overdue()
     {
         $project = Project::factory()->create();
-        
+
         Task::factory(2)->create([
             'project_id' => $project->id,
             'status' => 'pending',
@@ -77,7 +77,7 @@ class ProjectTest extends TestCase
     public function completed_tasks_are_not_considered_overdue_even_if_past_deadline()
     {
         $project = Project::factory()->create();
-        
+
         Task::factory(2)->create([
             'project_id' => $project->id,
             'status' => 'completed',
