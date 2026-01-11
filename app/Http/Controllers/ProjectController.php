@@ -2,33 +2,40 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Requests\StoreProjectRequest;
+use App\Models\Project;
+use App\Services\ProjectService;
+use Inertia\Inertia;
+use Inertia\Response;
+use Illuminate\Http\RedirectResponse;
 
 class ProjectController extends Controller
 {
-    public function index()
+    protected ProjectService $projectService;
+
+    public function __construct(ProjectService $projectService)
     {
-        return \Inertia\Inertia::render('Dashboard', [
-            'projects' => \App\Models\Project::latest()->get()
+        $this->projectService = $projectService;
+    }
+
+    public function index(): Response
+    {
+        return Inertia::render('Dashboard', [
+            'projects' => $this->projectService->getAllProjects()
         ]);
     }
 
-    public function store(\Illuminate\Http\Request $request)
+    public function store(StoreProjectRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-        ]);
-
-        \App\Models\Project::create($validated);
+        $this->projectService->createProject($request->validated());
 
         return redirect()->route('dashboard');
     }
 
-    public function show(\App\Models\Project $project)
+    public function show(Project $project): Response
     {
-        return \Inertia\Inertia::render('Project/Show', [
-            'project' => $project->load('tasks')
+        return Inertia::render('Project/Show', [
+            'project' => $this->projectService->getProjectWithTasks($project)
         ]);
     }
 }

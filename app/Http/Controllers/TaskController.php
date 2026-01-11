@@ -2,42 +2,39 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Requests\StoreTaskRequest;
+use App\Http\Requests\UpdateTaskRequest;
+use App\Models\Task;
+use App\Services\TaskService;
+use Illuminate\Http\RedirectResponse;
 
 class TaskController extends Controller
 {
-    public function store(\Illuminate\Http\Request $request)
-    {
-        $validated = $request->validate([
-            'project_id' => 'required|exists:projects,id',
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'required|in:pending,in_progress,completed',
-            'deadline' => 'required|date',
-        ]);
+    protected TaskService $taskService;
 
-        \App\Models\Task::create($validated);
+    public function __construct(TaskService $taskService)
+    {
+        $this->taskService = $taskService;
+    }
+
+    public function store(StoreTaskRequest $request): RedirectResponse
+    {
+        $this->taskService->createTask($request->validated());
 
         return back();
     }
 
-    public function update(\Illuminate\Http\Request $request, \App\Models\Task $task)
+    public function update(UpdateTaskRequest $request, Task $task): RedirectResponse
     {
-        $validated = $request->validate([
-            'title' => 'sometimes|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'sometimes|in:pending,in_progress,completed',
-            'deadline' => 'sometimes|date',
-        ]);
-
-        $task->update($validated);
+        $this->taskService->updateTask($task, $request->validated());
 
         return back();
     }
 
-    public function destroy(\App\Models\Task $task)
+    public function destroy(Task $task): RedirectResponse
     {
-        $task->delete();
+        $this->taskService->deleteTask($task);
+
         return back();
     }
 }
