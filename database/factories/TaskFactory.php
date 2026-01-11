@@ -19,9 +19,12 @@ class TaskFactory extends Factory
     {
         return [
             'project_id' => Project::factory(),
+            'column_id' => function (array $attributes) {
+                return null;
+            },
             'title' => fake()->sentence(4),
             'description' => fake()->paragraph(),
-            'status' => fake()->randomElement(['pending', 'in_progress', 'completed']),
+            'status' => 'pending',
             'priority' => fake()->randomElement(['low', 'medium', 'high']),
             'deadline' => fake()->dateTimeBetween('-1 month', '+1 month'),
         ];

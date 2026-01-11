@@ -24,8 +24,11 @@ class ProjectTest extends TestCase
     public function it_is_not_on_alert_if_all_tasks_are_on_time()
     {
         $project = Project::factory()->create();
+        $col = $project->columns()->create(['name' => 'Pend', 'is_completed' => false]);
+
         Task::factory(5)->create([
             'project_id' => $project->id,
+            'column_id' => $col->id,
             'status' => 'pending',
             'deadline' => now()->addDay(),
         ]);
@@ -37,15 +40,18 @@ class ProjectTest extends TestCase
     public function it_is_not_on_alert_if_exactly_20_percent_of_tasks_are_overdue()
     {
         $project = Project::factory()->create();
-        
+        $colPending = $project->columns()->create(['name' => 'Pend', 'is_completed' => false]);
+
         Task::factory()->create([
             'project_id' => $project->id,
+            'column_id' => $colPending->id,
             'status' => 'pending',
             'deadline' => now()->subDay(),
         ]);
 
         Task::factory(4)->create([
             'project_id' => $project->id,
+            'column_id' => $colPending->id,
             'status' => 'pending',
             'deadline' => now()->addDay(),
         ]);
@@ -57,15 +63,18 @@ class ProjectTest extends TestCase
     public function it_is_on_alert_if_more_than_20_percent_of_tasks_are_overdue()
     {
         $project = Project::factory()->create();
-        
+        $colPending = $project->columns()->create(['name' => 'Pend', 'is_completed' => false]);
+
         Task::factory(2)->create([
             'project_id' => $project->id,
+            'column_id' => $colPending->id,
             'status' => 'pending',
             'deadline' => now()->subDay(),
         ]);
 
         Task::factory(3)->create([
             'project_id' => $project->id,
+            'column_id' => $colPending->id,
             'status' => 'pending',
             'deadline' => now()->addDay(),
         ]);
@@ -77,15 +86,19 @@ class ProjectTest extends TestCase
     public function completed_tasks_are_not_considered_overdue_even_if_past_deadline()
     {
         $project = Project::factory()->create();
-        
+        $colDone = $project->columns()->create(['name' => 'Done', 'is_completed' => true]);
+        $colPending = $project->columns()->create(['name' => 'Pend', 'is_completed' => false]);
+
         Task::factory(2)->create([
             'project_id' => $project->id,
+            'column_id' => $colDone->id, // Assigned to Completed Column
             'status' => 'completed',
             'deadline' => now()->subDay(),
         ]);
 
         Task::factory(3)->create([
             'project_id' => $project->id,
+            'column_id' => $colPending->id,
             'status' => 'pending',
             'deadline' => now()->addDay(),
         ]);

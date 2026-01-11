@@ -6,7 +6,6 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateTaskRequest extends FormRequest
 {
-
     public function authorize(): bool
     {
         return true;
@@ -17,7 +16,7 @@ class UpdateTaskRequest extends FormRequest
         return [
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'sometimes|in:pending,in_progress,completed',
+            'column_id' => 'sometimes|exists:columns,id',
             'priority' => 'sometimes|in:low,medium,high',
             'deadline' => 'sometimes|date',
         ];
