@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreProjectRequest;
 use App\Models\Project;
 use App\Services\ProjectService;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Http\RedirectResponse;
 
 class ProjectController extends Controller
 {
@@ -21,7 +21,7 @@ class ProjectController extends Controller
     public function index(): Response
     {
         return Inertia::render('Dashboard', [
-            'projects' => $this->projectService->getAllProjects()
+            'projects' => $this->projectService->getAllProjects(),
         ]);
     }
 
@@ -32,10 +32,14 @@ class ProjectController extends Controller
         return redirect()->route('dashboard');
     }
 
-    public function show(Project $project): Response
+    public function show(Project $project)
     {
+        $project->load(['columns.tasks' => function ($query) {
+            $query->orderBy('order')->orderBy('created_at');
+        }]);
+
         return Inertia::render('Project/Show', [
-            'project' => $this->projectService->getProjectWithTasks($project)
+            'project' => $project,
         ]);
     }
 }

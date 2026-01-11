@@ -9,9 +9,14 @@ class Project extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description'];
+    protected $fillable = ['user_id', 'name', 'description'];
 
     protected $appends = ['is_on_alert'];
+
+    public function columns()
+    {
+        return $this->hasMany(Column::class)->orderBy('order');
+    }
 
     public function tasks()
     {
@@ -25,11 +30,19 @@ class Project extends Model
             return false;
         }
 
-        $overdueTasks = $this->tasks()
-            ->where('status', '!=', 'completed')
-            ->where('deadline', '<', now())
-            ->count();
+        $overdueTasks = $this->tasks->filter(function ($task) {
+            $isCompleted = $task->column ? $task->column->is_completed : $task->status === 'completed';
 
-        return ($overdueTasks / $totalTasks) > 0.20;
+            return ! $isCompleted && $task->deadline < now();
+        })->count();
+
+        $percentage = ($overdueTasks / $totalTasks) * 100;
+
+        return $percentage > 20;
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }
