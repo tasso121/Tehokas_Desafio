@@ -56,6 +56,17 @@ Siga os passos abaixo para rodar o projeto localmente:
 6. **Acessar**
    Abra o navegador em `http://localhost:8000`. Registre-se ou faça login para começar.
 
+### Funcionalidades Principais
+- **Projetos**: Criação e monitoramento de status.
+- **Kanban Dinâmico**:
+    - Criação de colunas personalizadas.
+    - **Drag-and-Drop**: Arraste tarefas entre colunas livremente.
+    - Indicadores visuais de prazo e prioridade.
+- **Tarefas**:
+    - Criação e Edição via Modais.
+    - Filtro por Prioridade.
+- **Indicador de Saúde**: Lógica automática que sinaliza projetos com >20% de atraso.
+
 ## 💡 Diferenciais e Soluções
 
 ### Lógica do Indicador de Saúde
@@ -66,8 +77,13 @@ O "Indicador de Saúde" foi implementado diretamente no Model `Project` utilizan
 ### Frontend com Inertia
 A escolha do Inertia.js permitiu construir uma Single Page Application (SPA) robusta utilizando o roteamento e controllers clássicos do Laravel, eliminando a complexidade de gerenciar uma API REST separada para este MVP.
 
+### CI/CD e Qualidade de Código
+O projeto conta com uma pipeline completa no **GitHub Actions**:
+- **Testes Automatizados**: Unitários e de Feature (PHPUnit) rodando a cada push.
+- **Linting**: Verificação automática de estilo de código com **Laravel Pint**.
+
 ### Maior Dificuldade
-A maior dificuldade técnica encontrada foi garantir a compatibilidade entre as versões mais recentes do Vite (v7) e os plugins do ecossistema Vue, o que foi resolvido ajustando as dependências do `package.json` para garantir estabilidade.
+A compatibilidade entre o Vite 6/7 e o ecossistema Vue exigiu downgrades estratégicos no `package.json` para garantir estabilidade no HMR (Hot Module Replacement).
 
 ---
 Desenvolvido por Candidato.

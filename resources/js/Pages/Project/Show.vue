@@ -2,13 +2,19 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Modal from '@/Components/Modal.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import draggable from 'vuedraggable';
 
 const props = defineProps({ project: Object });
 
 const showTaskModal = ref(false);
 const editingTask = ref(null);
 const showColumnForm = ref(false);
+const localColumns = ref([]);
+
+watch(() => props.project.columns, (newColumns) => {
+    localColumns.value = JSON.parse(JSON.stringify(newColumns));
+}, { immediate: true });
 
 const taskForm = useForm({
     project_id: props.project.id,
@@ -33,7 +39,7 @@ const openTaskModal = (task = null) => {
         taskForm.deadline = task.deadline ? new Date(task.deadline).toISOString().slice(0, 16) : '';
     } else {
         taskForm.reset();
-        taskForm.column_id = props.project.columns[0]?.id || '';
+        taskForm.column_id = props.project.columns[0]?.id || ''; 
         taskForm.project_id = props.project.id;
         taskForm.priority = 'medium';
     }
@@ -75,25 +81,26 @@ const deleteTask = (task) => {
     }
 };
 
+const onTaskMove = (event, columnId) => {
+    if (event.added) {
+        const task = event.added.element;
+        router.patch(route('tasks.update', task.id), {
+            column_id: columnId,
+        }, { preserveScroll: true });
+    }
+};
+
 const filterPriority = ref('all');
 
-const filteredColumns = computed(() => {
-    return props.project.columns.map(column => {
-        const filteredTasks = column.tasks.filter(t => {
-            const priorityMatch = filterPriority.value === 'all' || t.priority === filterPriority.value;
-            return priorityMatch;
-        });
-        return {
-            ...column,
-            tasks: filteredTasks
-        };
-    });
+const displayColumns = computed(() => {
+    if (filterPriority.value === 'all') {
+        return localColumns.value;
+    }
+    return localColumns.value.map(col => ({
+        ...col,
+        tasks: col.tasks.filter(t => t.priority === filterPriority.value)
+    }));
 });
-
-const isOverdue = (task) => {
-    if (!task.deadline) return false;
-    return false;
-};
 
 const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -118,12 +125,6 @@ const getPriorityLabel = (priority) => {
         default: return priority;
     }
 };
-
-const moveTask = (task, targetColumnId) => {
-    router.patch(route('tasks.update', task.id), {
-        column_id: targetColumnId
-    }, { preserveScroll: true });
-};
 </script>
 
 <template>
@@ -145,7 +146,7 @@ const moveTask = (task, targetColumnId) => {
                     <div class="flex items-center">
                         <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Prioridade:</label>
                         <select v-model="filterPriority" class="text-sm rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white py-1">
-                            <option value="all">Todas</option>
+                            <option value="all">Todas (Arrastar Ativado)</option>
                             <option value="high">Alta</option>
                             <option value="medium">Média</option>
                             <option value="low">Baixa</option>
@@ -173,15 +174,56 @@ const moveTask = (task, targetColumnId) => {
                 <!-- Kanban Board -->
                 <div class="flex space-x-4 items-start min-h-[calc(100vh-200px)]">
                     
-                    <!-- Dynamic Columns -->
-                    <div v-for="(column, index) in filteredColumns" :key="column.id" class="w-80 flex-shrink-0 bg-gray-100 dark:bg-gray-900 p-4 rounded-lg flex flex-col max-h-[80vh]">
+                    <div v-for="(column, index) in displayColumns" :key="column.id" class="w-80 flex-shrink-0 bg-gray-100 dark:bg-gray-900 p-4 rounded-lg flex flex-col max-h-[80vh]">
                         <h3 class="font-bold text-gray-700 dark:text-gray-300 mb-4 flex justify-between uppercase">
                             {{ column.name }}
                             <span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">{{ column.tasks.length }}</span>
                         </h3>
 
-                        <div class="overflow-y-auto flex-1 pr-2 space-y-3">
-                            <div v-for="task in column.tasks" :key="task.id" 
+                        <div v-if="filterPriority === 'all'" class="flex-1 overflow-y-auto pr-2">
+                            <draggable
+                                v-model="column.tasks"
+                                group="tasks"
+                                item-key="id"
+                                class="space-y-3 min-h-[50px]"
+                                ghost-class="opacity-50"
+                                drag-class="rotate-3"
+                                @change="onTaskMove($event, column.id)"
+                            >
+                                <template #item="{ element: task }">
+                                    <div 
+                                        class="bg-white dark:bg-gray-800 p-3 rounded shadow border-l-4 group relative hover:shadow-md transition-all cursor-move"
+                                        :class="column.is_completed ? 'border-green-500 opacity-75' : 'border-indigo-500'"
+                                    >
+                                        <div class="flex justify-between items-start">
+                                            <h4 class="font-semibold text-gray-900 dark:text-gray-100 text-sm" :class="{'line-through text-gray-500': column.is_completed}">{{ task.title }}</h4>
+                                            
+                                            <div class="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button @click="openTaskModal(task)" class="text-blue-400 hover:text-blue-600">✏️</button>
+                                                <button @click="deleteTask(task)" class="text-gray-400 hover:text-red-500">&times;</button>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{{ task.description }}</p>
+                                        
+                                        <div class="mt-2 flex justify-between items-center text-xs">
+                                             <span class="px-2 py-0.5 rounded border text-[10px] uppercase font-bold" :class="getPriorityBadgeClass(task.priority)">
+                                                {{ getPriorityLabel(task.priority) }}
+                                            </span>
+                                            
+                                            <span :class="{
+                                                'text-red-500 font-bold': !column.is_completed && new Date(task.deadline) < new Date(),
+                                                'text-gray-500': column.is_completed || new Date(task.deadline) >= new Date()
+                                            }">
+                                                📅 {{ formatDate(task.deadline) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </draggable>
+                        </div>
+
+                        <div v-else class="flex-1 overflow-y-auto pr-2 space-y-3 min-h-[50px]">
+                             <div v-for="task in column.tasks" :key="task.id" 
                                 class="bg-white dark:bg-gray-800 p-3 rounded shadow border-l-4 group relative hover:shadow-md transition-all"
                                 :class="column.is_completed ? 'border-green-500 opacity-75' : 'border-indigo-500'"
                             >
@@ -189,14 +231,8 @@ const moveTask = (task, targetColumnId) => {
                                     <h4 class="font-semibold text-gray-900 dark:text-gray-100 text-sm" :class="{'line-through text-gray-500': column.is_completed}">{{ task.title }}</h4>
                                     
                                     <div class="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <!-- Edit Button -->
-                                        <button @click="openTaskModal(task)" class="text-blue-400 hover:text-blue-600">
-                                            ✏️
-                                        </button>
-                                        <!-- Delete Button -->
-                                        <button @click="deleteTask(task)" class="text-gray-400 hover:text-red-500">
-                                            &times;
-                                        </button>
+                                        <button @click="openTaskModal(task)" class="text-blue-400 hover:text-blue-600">✏️</button>
+                                        <button @click="deleteTask(task)" class="text-gray-400 hover:text-red-500">&times;</button>
                                     </div>
                                 </div>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{{ task.description }}</p>
@@ -206,7 +242,6 @@ const moveTask = (task, targetColumnId) => {
                                         {{ getPriorityLabel(task.priority) }}
                                     </span>
                                     
-                                    <!-- Overdue Logic Check inline -->
                                     <span :class="{
                                         'text-red-500 font-bold': !column.is_completed && new Date(task.deadline) < new Date(),
                                         'text-gray-500': column.is_completed || new Date(task.deadline) >= new Date()
@@ -214,23 +249,12 @@ const moveTask = (task, targetColumnId) => {
                                         📅 {{ formatDate(task.deadline) }}
                                     </span>
                                 </div>
-
-                                <!-- Move Actions (Simple Logic) -->
-                                <div class="mt-2 pt-2 border-t dark:border-gray-700 flex justify-between" v-if="filteredColumns.length > 1">
-                                    <button v-if="index > 0" @click="moveTask(task, filteredColumns[index - 1].id)" class="text-xs text-gray-500 hover:text-gray-700">
-                                        &larr;
-                                    </button>
-                                    <span v-else></span>
-
-                                    <button v-if="index < filteredColumns.length - 1" @click="moveTask(task, filteredColumns[index + 1].id)" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold">
-                                        &rarr;
-                                    </button>
-                                </div>
                             </div>
+                            <p v-if="column.tasks.length === 0" class="text-center text-gray-400 text-xs mt-4">Nenhuma tarefa encontrada.</p>
                         </div>
+
                     </div>
 
-                    <!-- Add Column Column -->
                     <div class="w-80 flex-shrink-0">
                         <div v-if="!showColumnForm" @click="showColumnForm = true" class="bg-gray-100/50 dark:bg-gray-900/50 p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-indigo-500 cursor-pointer flex items-center justify-center h-16 text-gray-500 hover:text-indigo-500 transition-colors">
                             + Adicionar Coluna
@@ -251,9 +275,8 @@ const moveTask = (task, targetColumnId) => {
             </div>
         </div>
 
-        <!-- Task Modal -->
         <Modal :show="showTaskModal" @close="closeTaskModal">
-            <div class="p-6">
+             <div class="p-6">
                 <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
                     {{ editingTask ? 'Editar Tarefa' : 'Nova Tarefa' }}
                 </h2>
